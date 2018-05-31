@@ -128,4 +128,36 @@ class CanvasLMS extends AbstractProvider
         $uri = $request->getUri()->withUserInfo($this->clientId, $this->clientSecret);
         return $request->withUri($uri);
     }
+
+    /**
+     * Requests an access token using a specified grant and option set.
+     *
+     * @param  mixed $grant
+     * @param  array $options
+     * @return AccessToken
+     */
+    public function getAccessToken($grant, array $options = [])
+    {
+        $grant = $this->verifyGrant($grant);
+
+        $params = [
+            'client_id'     => $this->clientId,
+            'client_secret' => $this->clientSecret,
+            'redirect_uri'  => $this->redirectUri,
+        ];
+
+        $params   = $grant->prepareRequestParameters($params, $options);
+        $request  = $this->getAccessTokenRequest($params);
+        $response = $this->getParsedResponse($request);
+        $prepared = $this->prepareAccessTokenResponse($response);
+
+        // If it is a refresh request, put the old refresh token back in the access token
+        if($grant == 'refresh_token' && isset($options['refresh_token'])) {
+            $prepared['refresh_token'] = $options['refresh_token'];
+        }
+
+        $token    = $this->createAccessToken($prepared, $grant);
+
+        return $token;
+    }
 }
